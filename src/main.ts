@@ -2,6 +2,7 @@ import express from 'express';
 import { Octokit } from '@octokit/rest';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { Configuration, OpenAIApi }  from 'openai';
 
 dotenv.config();
 const app = express();
@@ -14,6 +15,34 @@ const octokit = new Octokit({
   auth: githubToken,
 });
 
+const openAIConfiguration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(openAIConfiguration);
+
+async function generateReviewMessage(prompt: string): Promise<string | null> {
+    try {
+      const response = await openai.createChatCompletion({
+        model: 'gpt-3.5-turbo',
+        messages: [
+            {role: 'system', content: 'you are a helpful github bot that does pull request reviews'},
+            {role: 'user', content: prompt},
+        ]
+      });
+
+      const firstChoiceForNow = response.data.choices[0].message
+
+      if ( !firstChoiceForNow ) {
+        throw new Error('No review message generated')
+      }
+  
+      return firstChoiceForNow.content;
+    } catch (error) {
+      console.error('Error generating review message:', error);
+      return null;
+    }
+  }
+  
 async function getPullRequest(owner: string, repo: string, pull_number: number) {
     try {
         const pr = await octokit.pulls.get({
@@ -57,7 +86,7 @@ app.post('/trigger-review', async (req, res) => {
 
     // Validate the input
     if (!owner || !repo || !pull_number) {
-    return res.status(400).send('Missing required parameters');
+        return res.status(400).send('Missing required parameters');
     }
 
     const pr = await getPullRequest(owner, repo, pull_number);
@@ -65,10 +94,13 @@ app.post('/trigger-review', async (req, res) => {
         return res.status(404).send('Pull request not found');
     }
 
-    // Here, you can analyze the PR, its files, and its changes to generate the review.
-    // You can use the "focusAreas" parameter to customize the analysis.
-    // For the sake of simplicity, we'll use a hardcoded review message in this example.
-    const reviewMessage = 'This is a sample review message from ChatGPT.';
+    const prompt = `Review the following pull request considering ${focusAreas}: ${pr.html_url}`;
+    const reviewMessage = await generateReviewMessage(prompt);
+
+    console.log(reviewMessage)
+    return res.status(200).send('Debug done');
+
+    // Debug for now
 
     // Submit the review
     const review = await createReview(owner, repo, pull_number, pr.head.sha, reviewMessage, 'COMMENT');
