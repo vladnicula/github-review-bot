@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Review Form</title>
+  </head>
+  <body>
+    <h1>GitHub Review Form</h1>
+    <form id="review-form">
+      <label for="owner">Owner:</label>
+      <input type="text" id="owner" name="owner" required />
+      <br />
+      <label for="repo">Repository:</label>
+      <input type="text" id="repo" name="repo" required />
+      <br />
+      <label for="pull_number">Pull Request Number:</label>
+      <input type="number" id="pull_number" name="pull_number" required />
+      <br />
+      <label for="focusAreas">Focus Areas:</label>
+      <input type="text" id="focusAreas" name="focusAreas" />
+      <br />
+      <button type="submit">Submit Review</button>
+    </form>
+    <script>
+      // Add JavaScript code here to handle form submission.
+      document.getElementById('review-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const owner = document.getElementById('owner').value;
+      const repo = document.getElementById('repo').value;
+      const pull_number = document.getElementById('pull_number').value;
+      const focusAreas = document.getElementById('focusAreas').value;
+
+      try {
+        const response = await fetch('http://localhost:3000/trigger-review', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ owner, repo, pull_number, focusAreas }),
+        });
+
+        if (response.ok) {
+          alert('Review submitted successfully');
+        } else {
+          const error = await response.text();
+          alert(`Failed to submit review: ${error}`);
+        }
+      } catch (error) {
+        alert(`Error submitting review: ${error.message}`);
+      }
+    });
+
+    </script>
+  </body>
+</html>
