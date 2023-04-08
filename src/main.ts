@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { Octokit } from '@octokit/rest';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -9,7 +10,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 const githubToken = process.env.GITHUB_TOKEN;
 
+app.use(cors());
 app.use(express.json());
+
+app.use(express.static('public'));
+
 
 const octokit = new Octokit({
   auth: githubToken,
@@ -46,9 +51,9 @@ async function generateReviewMessage(prompt: string): Promise<string | null> {
 async function getPullRequest(owner: string, repo: string, pull_number: number) {
     try {
         const pr = await octokit.pulls.get({
-        owner,
-        repo,
-        pull_number,
+          owner,
+          repo,
+          pull_number,
         });
         return pr.data;
     } catch (error) {
@@ -103,12 +108,12 @@ app.post('/trigger-review', async (req, res) => {
     // Debug for now
 
     // Submit the review
-    const review = await createReview(owner, repo, pull_number, pr.head.sha, reviewMessage, 'COMMENT');
-    if (!review) {
-        return res.status(500).send('Failed to create a review');
-    }
+    // const review = await createReview(owner, repo, pull_number, pr.head.sha, reviewMessage, 'COMMENT');
+    // if (!review) {
+    //     return res.status(500).send('Failed to create a review');
+    // }
 
-    res.send('Review submitted successfully');
+    // res.send('Review submitted successfully');
 });
 
 
@@ -132,10 +137,10 @@ app.all('/github-api/*', async (req, res) => {
         const response = error.response as Record<string, number>
         res.status(response.status).send(response.data);
       } else {
-        res.status(500).send('An error occurred while making the request');
+        res.status(500).send(`An unknown error occurred while making the request ${error}`);
       }
     }
-  });
+});
   
 
   
